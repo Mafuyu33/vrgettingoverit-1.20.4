@@ -8,6 +8,7 @@ import static mafuyu33.vrgettingoverit.VRPlugin.getVRAPI;
 import static mafuyu33.vrgettingoverit.VRPlugin.hasVRAPI;
 
 public class VRDataHandler {
+
     public static Vec3d getMainhandControllerPosition(PlayerEntity player){
         return getControllerPosition(player, 0);
     }
