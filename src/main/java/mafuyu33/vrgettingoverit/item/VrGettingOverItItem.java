@@ -24,9 +24,9 @@ public class VrGettingOverItItem extends Item {
     }
     public Vec3History[] controllerHistory = new Vec3History[]{new Vec3History(), new Vec3History()};
     final double extendDistance=2.0;
-    Vec3d lastExtendPosition;
-    Vec3d predictExtendPosition;
-    Vec3d extendPosition;
+    Vec3d lastExtendPosition=new Vec3d (0,100,0);
+    Vec3d predictExtendPosition=new Vec3d (0,100,0);
+    Vec3d currentExtendPosition=new Vec3d (0,100,0);
     Box[] blockbox = new Box[1];//方块的碰撞箱
 
     @Override
@@ -57,38 +57,35 @@ public class VrGettingOverItItem extends Item {
                     }
 
 
-
-                    //判定为锤头被方块阻挡部分的代码，预测的位置在方块内的话就开始进行判定
-                    if(isInsideBlock(world,predictExtendPosition)) {
-                        if(isInsideBlock(world, predictExtendPosition) && !isInsideBlock(world, lastExtendPosition)){
-                            //如果预测坐标在方块内，上次坐标不在方块内，表明是第一次碰到方块。更新坐标，不更新玩家位置。
-                            extendPosition=predictExtendPosition;
-                        }
-                        if (isInsideBlock(world, predictExtendPosition) && isInsideBlock(world, lastExtendPosition)) {
-                            //如果预测坐标在方块内，上次坐标也在方块内，表明是卡在方块中了。为了防止移动，不更新坐标，但是更新玩家位置。
-                            extendPosition=lastExtendPosition;
-                            player.sendMessage(Text.literal("inside block"), true);
-                            //然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线（这个怎么实现？）（用旋转角度检测？）
-
-                        }
-                        if(!isInsideBlock(world, predictExtendPosition) && isInsideBlock(world, lastExtendPosition)){
-                            //如果预测坐标不在方块内，上次坐标在方块内，表明锤子脱离卡住状态了。更新坐标，不更新玩家位置。
-                            extendPosition = predictExtendPosition;
-                        }
-                        if(!isInsideBlock(world, predictExtendPosition) && !isInsideBlock(world, lastExtendPosition)){
-                            //都不在方块内，正常更新
-                            extendPosition = predictExtendPosition;
-                        }
+                    if(isInsideBlock(world, predictExtendPosition) && !isInsideBlock(world, lastExtendPosition)){
+                        //如果预测坐标在方块内，上次坐标不在方块内，表明是第一次碰到方块。更新坐标，不更新玩家位置。
+                        currentExtendPosition=predictExtendPosition;
+                        player.sendMessage(Text.literal("第一次碰到方块"), true);
                     }
+                    if (isInsideBlock(world, predictExtendPosition) && isInsideBlock(world, lastExtendPosition)) {
+                        //如果预测坐标在方块内，上次坐标也在方块内，表明是卡在方块中了。为了防止移动，不更新坐标，但是更新玩家位置。
+                        currentExtendPosition=lastExtendPosition;
+                        player.sendMessage(Text.literal("卡在方块中了"), true);
+                        //然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线（这个怎么实现？）（用旋转角度检测？）
+
+                    }
+                    if(!isInsideBlock(world, predictExtendPosition) && isInsideBlock(world, lastExtendPosition)){
+                        //如果预测坐标不在方块内，上次坐标在方块内，表明锤子脱离卡住状态了。更新坐标，不更新玩家位置。
+                        currentExtendPosition = predictExtendPosition;
+                        player.sendMessage(Text.literal("脱离卡住状态了"), true);
+                    }
+                    if(!isInsideBlock(world, predictExtendPosition) && !isInsideBlock(world, lastExtendPosition)){
+                        //都不在方块内，正常更新
+                        currentExtendPosition = predictExtendPosition;
+                        player.sendMessage(Text.literal("都不在方块内，正常更新"), true);
+                    }
+
+
 
                     //锤头的位置模拟（目前用粒子代替）
-                    world.addParticle(ParticleTypes.END_ROD,extendPosition.x,extendPosition.y,extendPosition.z,0,0,0);
+                    world.addParticle(ParticleTypes.BUBBLE,currentExtendPosition.x,currentExtendPosition.y,currentExtendPosition.z,0,0,0);
 
-                    if(extendPosition!=null) {
-                        lastExtendPosition = extendPosition;//存储上一次的位置
-                    }else {
-                        lastExtendPosition = predictExtendPosition;
-                    }
+                    lastExtendPosition = currentExtendPosition;//存储上一次的位置
                 }else {
                     player.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);
                 }
@@ -130,9 +127,8 @@ public class VrGettingOverItItem extends Item {
         } else {
             blockbox[0] = voxelshape.getBoundingBox();
         }
-
         //判断是否在方块内部
-        return blockbox[0] != null && blockbox[0].contains(extendPosition);
+        return blockbox[0] != null && blockbox[0].offset(blockPos).contains(position);
     }
 }
 /*
