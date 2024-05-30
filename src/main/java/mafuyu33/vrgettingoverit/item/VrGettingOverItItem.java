@@ -207,5 +207,5 @@ public class VrGettingOverItItem extends Item {
 
     还要有一个锤头能拿出来的判定，通过检测两只手的变化，如果判定到锤头往方块外面的方向移动了就切换状态，判定为没卡住，让锤头可以自由移动。
 
-    渲染部分是拿对应手控制器和extendPosition这两个点来做渲染锤子
+    渲染部分是拿对应手控制器和extendPosition这两个点来做渲染锤子。生成一个实体，然后调用itementity的渲染方法来渲染。记得添加实体在服务端。
 */
