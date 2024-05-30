@@ -3,20 +3,23 @@
 	"id": "vrgettingoverit",
 	"version": "${version}",
 	"name": "VRGettingOverIt",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"description": "You can play Getting Over It in VR!",
 	"authors": [
-		"Me!"
+		"Mafuyu33"
 	],
 	"contact": {
-		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/FabricMC/fabric-example-mod"
+		"homepage": "https://space.bilibili.com/5616993",
+		"sources": "https://github.com/Mafuyu33/vrgettingoverit-1.20.4"
 	},
-	"license": "CC0-1.0",
+	"license": "CC BY-NC 4.0",
 	"icon": "assets/vrgettingoverit/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
 			"mafuyu33.vrgettingoverit.VRGettingOverIt"
+		],
+		"client": [
+			"mafuyu33.vrgettingoverit.VRGettingOverItClient"
 		]
 	},
 	"mixins": [

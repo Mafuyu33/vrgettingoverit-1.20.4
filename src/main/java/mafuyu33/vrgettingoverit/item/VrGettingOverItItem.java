@@ -3,9 +3,18 @@ package mafuyu33.vrgettingoverit.item;
 import mafuyu33.vrgettingoverit.VRDataHandler;
 import mafuyu33.vrgettingoverit.VRPlugin;
 import mafuyu33.vrgettingoverit.util.Vec3History;
+import net.blf02.vrapi.data.VRData;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.render.OverlayTexture;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.client.render.model.json.ModelTransformationMode;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -16,6 +25,8 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
+import org.joml.Quaternionf;
+import org.vivecraft.client_vr.ClientDataHolderVR;
 
 
 public class VrGettingOverItItem extends Item {
@@ -24,10 +35,13 @@ public class VrGettingOverItItem extends Item {
     }
     public Vec3History[] controllerHistory = new Vec3History[]{new Vec3History(), new Vec3History()};
     final double extendDistance=2.0;
-    Vec3d lastExtendPosition=new Vec3d (0,100,0);
-    Vec3d predictExtendPosition=new Vec3d (0,100,0);
-    Vec3d currentExtendPosition=new Vec3d (0,100,0);
+    public static Vec3d lastPos=new Vec3d (0,100,0);
+    public static Vec3d lastMainPos=new Vec3d (0,100,0);
+    public static Vec3d lastOffPos=new Vec3d (0,100,0);
+    public static Vec3d predictPos=new Vec3d (0,100,0);
+    public static Vec3d currentPos = new Vec3d (0,100,0);
     Box[] blockbox = new Box[1];//方块的碰撞箱
+    public static boolean leftHanded;
 
     @Override
     public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
@@ -36,6 +50,8 @@ public class VrGettingOverItItem extends Item {
             if(player.isHolding(stack.getItem())){
                 //强制双手持有
                 if (VRPlugin.canRetrieveData(player)) {//vr
+
+
                     //初始化位置阶段
 
                     //禁止玩家使用方向键移动
@@ -49,49 +65,102 @@ public class VrGettingOverItItem extends Item {
 
                     // 判断活跃的手并计算扩展位置
                     if (mainHandStack == stack) {
-                        // 如果活跃的是右手，从mainPos向offPos扩展，计算预测的坐标
-                        predictExtendPosition = extendPosition(offPos, mainPos, extendDistance);
+                        //如果活跃的是右手，从offPos向mainPos扩展，计算预测的坐标
+                        predictPos = extendPosition(offPos, mainPos, extendDistance);
+                        leftHanded=false;
                     } else if(offHandStack == stack) {
-                        // 如果活跃的是左手，从offPos向mainPos扩展，计算预测的坐标
-                        predictExtendPosition = extendPosition(mainPos, offPos, extendDistance);
+                        // 如果活跃的是左手，从mainPos向offPos扩展，计算预测的坐标
+                        predictPos = extendPosition(mainPos, offPos, extendDistance);
+                        leftHanded=true;
                     }
 
 
-                    if(isInsideBlock(world, predictExtendPosition) && !isInsideBlock(world, lastExtendPosition)){
+                    if(isInsideBlock(world, predictPos) && !isInsideBlock(world, lastPos)){
                         //如果预测坐标在方块内，上次坐标不在方块内，表明是第一次碰到方块。更新坐标，不更新玩家位置。
-                        currentExtendPosition=predictExtendPosition;
+                        currentPos=predictPos;
                         player.sendMessage(Text.literal("第一次碰到方块"), true);
                     }
-                    if (isInsideBlock(world, predictExtendPosition) && isInsideBlock(world, lastExtendPosition)) {
-                        //如果预测坐标在方块内，上次坐标也在方块内，表明是卡在方块中了。为了防止移动，不更新坐标，但是更新玩家位置。
-                        currentExtendPosition=lastExtendPosition;
+                    if (isInsideBlock(world, predictPos) && isInsideBlock(world, lastPos)) {
+                        // 如果预测坐标在方块内，上次坐标也在方块内，表明是卡在方块中了。为了防止移动，不更新坐标，但是更新玩家位置。
+                        currentPos=lastPos;
                         player.sendMessage(Text.literal("卡在方块中了"), true);
-                        //然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线（这个怎么实现？）（用旋转角度检测？）
+                        // 然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线（这个怎么实现？）（用旋转角度检测？）
 
+                        //让玩家浮空
+                        if (player.isOnGround()) {
+                            player.setOnGround(false);
+                        }
+                        player.setNoGravity(true);
+
+                        // 获取当前玩家位置
+                        Vec3d playerPos = player.getPos();
+
+                        //将predictPos（预测位置）和currentPos（实际位置）进行比较，计算它们之间的位移向量
+                        Vec3d displacement = predictPos.subtract(currentPos);
+                        //将这个位移向量同步在玩家身上
+                        player.setPos(playerPos.x-displacement.x,playerPos.y-displacement.y,playerPos.z-displacement.z);
+                        if(world.isClient) {
+                            ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
+                            dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity) player, false, false);
+                        }
                     }
-                    if(!isInsideBlock(world, predictExtendPosition) && isInsideBlock(world, lastExtendPosition)){
+                    if(!isInsideBlock(world, predictPos) && isInsideBlock(world, lastPos)){
                         //如果预测坐标不在方块内，上次坐标在方块内，表明锤子脱离卡住状态了。更新坐标，不更新玩家位置。
-                        currentExtendPosition = predictExtendPosition;
+                        player.fallDistance = 0.0F;
+                        currentPos = predictPos;
+                        player.setNoGravity(false);
                         player.sendMessage(Text.literal("脱离卡住状态了"), true);
                     }
-                    if(!isInsideBlock(world, predictExtendPosition) && !isInsideBlock(world, lastExtendPosition)){
+                    if(!isInsideBlock(world, predictPos) && !isInsideBlock(world, lastPos)){
                         //都不在方块内，正常更新
-                        currentExtendPosition = predictExtendPosition;
+                        currentPos = predictPos;
                         player.sendMessage(Text.literal("都不在方块内，正常更新"), true);
                     }
 
 
+                    //渲染
+                    if(world.isClient){
+                        //锤头的位置模拟（目前用粒子代替）
+                        int numParticles = 10;  // 粒子数量
+                        Vec3d startPos;
 
-                    //锤头的位置模拟（目前用粒子代替）
-                    world.addParticle(ParticleTypes.BUBBLE,currentExtendPosition.x,currentExtendPosition.y,currentExtendPosition.z,0,0,0);
+                        if(leftHanded) {//左右手
+                            startPos = mainPos;
+                        }else {
+                            startPos= offPos;
+                        }
 
-                    lastExtendPosition = currentExtendPosition;//存储上一次的位置
+                        // 计算每个粒子的位置增量
+                        Vec3d increment = currentPos.subtract(startPos).multiply(1.0 / numParticles);
+
+                        for (int i = 0; i <= numParticles; i++) {
+                            Vec3d particlePos = startPos.add(increment.multiply(i));
+                            world.addParticle(ParticleTypes.BUBBLE, particlePos.x, particlePos.y, particlePos.z, 0, 0, 0);
+                        }
+                    }
+
+                    //存储上一次的位置
+                    lastPos = currentPos;
+                    lastMainPos = mainPos;
+                    lastOffPos = offPos;
                 }else {
                     player.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);
                 }
             }
         }
     }
+
+
+
+    // 旋转向量 aroundAxis 轴的 angle 角度
+    private Vec3d rotateAroundAxis(Vec3d vector, Vec3d axis, double angle) {
+        double cos = Math.cos(angle);
+        double sin = Math.sin(angle);
+        return vector.multiply(cos)
+                .add(axis.crossProduct(vector).multiply(sin))
+                .add(axis.multiply(axis.dotProduct(vector)).multiply(1 - cos));
+    }
+
     public Vec3d extendPosition(Vec3d mainPos, Vec3d offPos, double distance) {
         // 从mainPos到offPos的方向向量
         Vec3d direction = new Vec3d(offPos.x - mainPos.x, offPos.y - mainPos.y, offPos.z - mainPos.z);
