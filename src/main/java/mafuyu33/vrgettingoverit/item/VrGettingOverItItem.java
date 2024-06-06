@@ -18,8 +18,11 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.item.ItemUsageContext;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.text.Text;
+import net.minecraft.util.ActionResult;
+import net.minecraft.util.UseAction;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Vec3d;
@@ -139,18 +142,32 @@ public class VrGettingOverItItem extends Item {
                         }
                     }
 
+
                     //存储上一次的位置
                     lastPos = currentPos;
                     lastMainPos = mainPos;
                     lastOffPos = offPos;
                 }else {
-                    player.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);
+                    if(!world.isClient) {
+                        player.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);
+
+                    }
                 }
             }
         }
     }
 
-
+    @Override
+    public ActionResult useOnBlock(ItemUsageContext context) {//模型测试
+//        VrGettingOverItEntity vrGettingOverItEntity = new VrGettingOverItEntity(ModEntities.VR_GETTING_OVER_IT_ENTITY,context.getWorld());
+//        PlayerEntity player =context.getPlayer();
+//        if (player!=null) {
+//            vrGettingOverItEntity.setPos(player.getX(), player.getY(), player.getZ());
+//            vrGettingOverItEntity.setVelocity(0, 0, 0);
+//            context.getWorld().spawnEntity(vrGettingOverItEntity);
+//        }
+        return super.useOnBlock(context);
+    }
 
     // 旋转向量 aroundAxis 轴的 angle 角度
     private Vec3d rotateAroundAxis(Vec3d vector, Vec3d axis, double angle) {

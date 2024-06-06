@@ -2,6 +2,8 @@ package mafuyu33.vrgettingoverit;
 
 import mafuyu33.vrgettingoverit.item.Moditems;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
+import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,7 +17,7 @@ public class VRGettingOverIt implements ModInitializer {
 		Moditems.registerModItems();
 		//VR
 		VRPlugin.init();
-
+//		EntityRendererRegistry.register(ModEntities.VR_GETTING_OVER_IT_ENTITY, VrGettingOverItRenderer::new);
 		LOGGER.info("Hello Fabric world!");
 	}
 }
