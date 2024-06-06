@@ -11,7 +11,7 @@ import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public class Moditems {
-    public static final Item VR_GETTING_OVER_IT = registerItem("vr_getting_over_it", new VrGettingOverItItem(new FabricItemSettings().maxCount(1)));
+    public static final Item VR_GETTING_OVER_IT = registerItem("vr_getting_over_it", new Item(new FabricItemSettings().maxCount(1)));
 
     private static void addItemsToIngredientItemGroup(FabricItemGroupEntries entries){
         entries.add(VR_GETTING_OVER_IT);

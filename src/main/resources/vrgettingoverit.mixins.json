@@ -3,7 +3,8 @@
   "package": "mafuyu33.vrgettingoverit.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "ExampleMixin"
+    "ExampleMixin",
+    "PlayerEntityMixin"
   ],
   "injectors": {
     "defaultRequire": 1

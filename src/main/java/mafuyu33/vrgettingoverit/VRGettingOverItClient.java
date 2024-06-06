@@ -17,9 +17,6 @@ import org.joml.Quaternionf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import static mafuyu33.vrgettingoverit.item.VrGettingOverItItem.currentPos;
-import static mafuyu33.vrgettingoverit.item.VrGettingOverItItem.leftHanded;
-
 public class VRGettingOverItClient implements ClientModInitializer {
 
 
