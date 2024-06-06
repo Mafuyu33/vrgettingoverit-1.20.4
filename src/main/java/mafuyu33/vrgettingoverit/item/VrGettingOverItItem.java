@@ -2,6 +2,8 @@ package mafuyu33.vrgettingoverit.item;
 
 import mafuyu33.vrgettingoverit.VRDataHandler;
 import mafuyu33.vrgettingoverit.VRPlugin;
+import mafuyu33.vrgettingoverit.entity.ModEntities;
+import mafuyu33.vrgettingoverit.entity.VrGettingOverItEntity;
 import mafuyu33.vrgettingoverit.util.Vec3History;
 import net.blf02.vrapi.data.VRData;
 import net.minecraft.block.Block;
@@ -19,6 +21,7 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.ItemUsageContext;
+import net.minecraft.item.Items;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -159,13 +162,13 @@ public class VrGettingOverItItem extends Item {
 
     @Override
     public ActionResult useOnBlock(ItemUsageContext context) {//模型测试
-//        VrGettingOverItEntity vrGettingOverItEntity = new VrGettingOverItEntity(ModEntities.VR_GETTING_OVER_IT_ENTITY,context.getWorld());
-//        PlayerEntity player =context.getPlayer();
-//        if (player!=null) {
-//            vrGettingOverItEntity.setPos(player.getX(), player.getY(), player.getZ());
-//            vrGettingOverItEntity.setVelocity(0, 0, 0);
-//            context.getWorld().spawnEntity(vrGettingOverItEntity);
-//        }
+        VrGettingOverItEntity vrGettingOverItEntity = new VrGettingOverItEntity(ModEntities.VR_GETTING_OVER_IT_ENTITY,context.getWorld(), Items.DIAMOND.getDefaultStack());
+        PlayerEntity player =context.getPlayer();
+        if (player!=null) {
+            vrGettingOverItEntity.setPos(player.getX(), player.getY(), player.getZ());
+            vrGettingOverItEntity.setVelocity(0, 0, 0);
+            context.getWorld().spawnEntity(vrGettingOverItEntity);
+        }
         return super.useOnBlock(context);
     }
 
