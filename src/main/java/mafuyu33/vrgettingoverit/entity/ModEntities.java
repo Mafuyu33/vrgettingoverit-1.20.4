@@ -25,7 +25,7 @@
 //    }
 //
 //    private static <T extends Entity> EntityType<T> createArrowEntityType(EntityType.EntityFactory<T> factory) {
-//        return FabricEntityTypeBuilder.create(SpawnGroup.MISC, factory).dimensions(EntityDimensions.fixed(0.5f, 0.5f)).trackRangeBlocks(4).trackedUpdateRate(20).build();
+//        return FabricEntityTypeBuilder.create(SpawnGroup.MISC, factory).dimensions(EntityDimensions.fixed(0.5f, 0.5f)).trackRangeBlocks(4).trackedUpdateRate(1).build();
 //    }
 //    public static void init() {
 //        VR_GETTING_OVER_IT_ENTITY = register(createArrowEntityType(VrGettingOverItEntityFactory::create));

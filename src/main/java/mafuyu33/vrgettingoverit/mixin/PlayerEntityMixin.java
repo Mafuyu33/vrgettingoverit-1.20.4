@@ -12,6 +12,7 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -57,9 +58,11 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     }
 
 
+
     @Inject(at = @At("HEAD"), method = "tick")
     private void init(CallbackInfo info) {
         if(this.isHolding(Moditems.VR_GETTING_OVER_IT)){//手持vr锤子的时候
+            //传递手柄参数给
 
 
             //强制双手持有
@@ -131,11 +134,13 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                     this.sendMessage(Text.literal("都不在方块内，正常更新"), true);
                 }
 
+                //渲染锤头粒子
+                if(this.getWorld().isClient){
+                    world.addParticle(ParticleTypes.BUBBLE, currentPos.x, currentPos.y, currentPos.z, 0, 0, 0);
+                }
 
                 //存储上一次的位置
                 lastPos = currentPos;
-//                lastMainPos = mainPos;
-//                lastOffPos = offPos;
             }else {//非vr
                 if(!world.isClient) {
                     this.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);

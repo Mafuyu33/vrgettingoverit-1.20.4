@@ -1,7 +1,6 @@
 package mafuyu33.vrgettingoverit;
 
 import mafuyu33.vrgettingoverit.item.Moditems;
-import mafuyu33.vrgettingoverit.renderer.VrGettingOverItRenderer;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;

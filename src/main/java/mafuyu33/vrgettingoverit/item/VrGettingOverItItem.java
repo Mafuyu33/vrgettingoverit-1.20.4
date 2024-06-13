@@ -48,7 +48,7 @@
 //    public static Vec3d currentPos = new Vec3d (0,100,0);
 //    Box[] blockbox = new Box[1];//方块的碰撞箱
 //    public static boolean leftHanded;
-//
+
 //    @Override
 //    public void inventoryTick(ItemStack stack, World world, Entity entity, int slot, boolean selected) {
 //        super.inventoryTick(stack, world, entity, slot, selected);
@@ -159,7 +159,7 @@
 //            }
 //        }
 //    }
-//
+
 //    @Override
 //    public ActionResult useOnBlock(ItemUsageContext context) {//模型测试
 //        VrGettingOverItEntity vrGettingOverItEntity = new VrGettingOverItEntity(ModEntities.VR_GETTING_OVER_IT_ENTITY,context.getWorld(), Items.DIAMOND.getDefaultStack());
@@ -167,6 +167,7 @@
 //        if (player!=null) {
 //            vrGettingOverItEntity.setPos(player.getX(), player.getY(), player.getZ());
 //            vrGettingOverItEntity.setVelocity(0, 0, 0);
+//            vrGettingOverItEntity.setNoGravity(true);
 //            context.getWorld().spawnEntity(vrGettingOverItEntity);
 //        }
 //        return super.useOnBlock(context);
@@ -220,12 +221,12 @@
 //        return blockbox[0] != null && blockbox[0].offset(blockPos).contains(position);
 //    }
 //}
-///*
-//    物理碰撞部分，当锤头在方块内部的时候，判定为卡住（攀爬爪代码），并且把他的位置限制在方块的最外面（可以用掉落物被推出方块的代码）
-//    此时以锤头的位置作为基准，与玩家两个手柄的位置的变化来进行计算，来改变玩家的位置（而且要有惯性，所以不能单纯
-//    地通过改变坐标位置来实现，而要给玩家施加速度的方式，所以还要储存上一次的位置来计算双手的速度）。
-//
-//    还要有一个锤头能拿出来的判定，通过检测两只手的变化，如果判定到锤头往方块外面的方向移动了就切换状态，判定为没卡住，让锤头可以自由移动。
-//
-//    渲染部分是拿对应手控制器和extendPosition这两个点来做渲染锤子。生成一个实体，然后调用itementity的渲染方法来渲染。记得添加实体在服务端。
-//*/
+/*
+    物理碰撞部分，当锤头在方块内部的时候，判定为卡住（攀爬爪代码），并且把他的位置限制在方块的最外面（可以用掉落物被推出方块的代码）
+    此时以锤头的位置作为基准，与玩家两个手柄的位置的变化来进行计算，来改变玩家的位置（而且要有惯性，所以不能单纯
+    地通过改变坐标位置来实现，而要给玩家施加速度的方式，所以还要储存上一次的位置来计算双手的速度）。
+
+    还要有一个锤头能拿出来的判定，通过检测两只手的变化，如果判定到锤头往方块外面的方向移动了就切换状态，判定为没卡住，让锤头可以自由移动。
+
+    渲染部分是拿对应手控制器和extendPosition这两个点来做渲染锤子。生成一个实体，然后调用itementity的渲染方法来渲染。记得添加实体在服务端。
+*/

@@ -40,7 +40,7 @@
 //
 //        PlayerEntity player = getWorld().getClosestPlayer(this,10);
 //        if(player!=null && player.isHolding(Moditems.VR_GETTING_OVER_IT)) {
-//            if (VRPlugin.canRetrieveData(player)) {
+//            if (VRPlugin.canRetrieveData(player) && !getWorld().isClient) {
 //                // 获取主手和副手控制器的位置
 //                Vec3d mainPos = VRDataHandler.getMainhandControllerPosition(player);
 //                Vec3d offPos = VRDataHandler.getOffhandControllerPosition(player);
