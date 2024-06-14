@@ -39,6 +39,12 @@ public class VRDataHandler {
         }
         return null;
     }
+    public static float getHMDRoll(PlayerEntity player){
+        if (hasVRAPI()){
+            return getVRAPI().getVRPlayer(player).getHMD().getRoll();
+        }
+        return 0;
+    }
     public static Vec3d getHMDPosition(PlayerEntity player){
         if (hasVRAPI()){
             return getVRAPI().getVRPlayer(player).getHMD().position();
