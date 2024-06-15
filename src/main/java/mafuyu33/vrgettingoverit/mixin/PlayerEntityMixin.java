@@ -83,11 +83,11 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                 // 判断活跃的手并计算扩展位置
                 if (mainHandStack.isOf(Moditems.VR_GETTING_OVER_IT)) {
                     //如果活跃的是右手，从offPos向mainPos扩展，计算预测的坐标
-                    predictPos = VrGettingOverIt$extendPosition(offPos, mainPos, extendDistance);
+                    predictPos = VrGettingOverIt$extendPosition(mainPos, offPos, extendDistance);
                     leftHanded=false;
                 } else if(offHandStack.isOf(Moditems.VR_GETTING_OVER_IT)) {
                     // 如果活跃的是左手，从mainPos向offPos扩展，计算预测的坐标
-                    predictPos = VrGettingOverIt$extendPosition(mainPos, offPos, extendDistance);
+                    predictPos = VrGettingOverIt$extendPosition(offPos, mainPos, extendDistance);
                     leftHanded=true;
                 }
 
