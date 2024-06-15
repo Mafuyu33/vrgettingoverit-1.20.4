@@ -6,12 +6,15 @@ import net.fabricmc.fabric.api.itemgroup.v1.FabricItemGroupEntries;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
+import net.minecraft.item.SwordItem;
+import net.minecraft.item.ToolMaterials;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.util.Identifier;
 
 public class Moditems {
-    public static final Item VR_GETTING_OVER_IT = registerItem("vr_getting_over_it", new Item(new FabricItemSettings().maxCount(1)));
+    public static final Item VR_GETTING_OVER_IT = registerItem("vr_getting_over_it",
+            new SwordItem(ToolMaterials.NETHERITE, 3, -2.4F, (new FabricItemSettings()).fireproof()));
 
     private static void addItemsToIngredientItemGroup(FabricItemGroupEntries entries){
         entries.add(VR_GETTING_OVER_IT);
