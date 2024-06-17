@@ -38,27 +38,29 @@ import static org.joml.Math.lerp;
 
 @Mixin(value = HeldItemRenderer.class, priority = 998)
 public abstract class ItemInHandRendererVRMixin {
-//	@Unique
-//	Vec3d rightHandPosOld = Vec3d.ZERO;
-//	@Unique
-//	Vec3d leftHandPosOld = Vec3d.ZERO;
-//	@Unique
-//	float yaw1old= 0.0f;
-//	@Unique
-//	float pitch1old= 0.0f;
-	@Unique
-	float roll1= 0.0f;
-	@Unique
-	float roll1old= 0.0f;
+	@Shadow
+	private float equipProgressMainHand;
+	@Shadow
+	private float prevEquipProgressMainHand;
+	@Shadow
+	private float equipProgressOffHand;
+	@Shadow
+	private float prevEquipProgressOffHand;
+
+
+	protected ItemInHandRendererVRMixin() {
+	}
+
 	@Shadow
 	protected abstract void renderArmHoldingItem(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, float equipProgress, float swingProgress, Arm arm);
 
 	@Inject(at = @At("HEAD"), method = "renderFirstPersonItem", cancellable = true)
 	private void init(AbstractClientPlayerEntity player, float tickDelta, float pitch, Hand hand, float swingProgress, ItemStack item, float equipProgress, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
-		if (item.isOf(Moditems.VR_GETTING_OVER_IT) && player != null && VRPlugin.canRetrieveData(player) && player.getWorld().isClient) {//如果是VR锤子的话
+		if (item.isOf(Moditems.VR_GETTING_OVER_IT) && player != null && VRPlugin.canRetrieveData(player)) {//如果是VR锤子的话
 			boolean mainHand = hand == Hand.MAIN_HAND;
 			ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
 			Arm humanoidarm = mainHand ? player.getMainArm() : player.getMainArm().getOpposite();
+			equipProgressMainHand = this.gettingoverit$getEquipProgress(hand, tickDelta);
 			boolean renderArm = dh.currentPass != RenderPass.THIRD || dh.vrSettings.mixedRealityRenderHands;
 
 			if (dh.currentPass == RenderPass.CAMERA) {
@@ -68,13 +70,8 @@ public abstract class ItemInHandRendererVRMixin {
 				this.renderArmHoldingItem(matrices, vertexConsumers, light, equipProgress, swingProgress, humanoidarm);//渲染手臂
 			}
 			// 获取两个手柄
-			Vec3d rightHandPos = VRDataHandler.getMainhandControllerPosition(player);
-			Vec3d leftHandPos = VRDataHandler.getOffhandControllerPosition(player);
-			Vec3d rightHandPosOld = VRPlugin.getVRAPI().getPreTickVRPlayer().getController(0).position();
-			Vec3d leftHandPosOld = VRPlugin.getVRAPI().getPreTickVRPlayer().getController(1).position();
-			// 计算插值位置
-			Vec3d interpolatedRightHandPos = rightHandPosOld.lerp(rightHandPos, tickDelta);
-			Vec3d interpolatedLeftHandPos = leftHandPosOld.lerp(leftHandPos, tickDelta);
+			Vec3d rightHandPos = VRPlugin.getVRAPI().getRenderVRPlayer().getController(0).position();
+			Vec3d leftHandPos = VRPlugin.getVRAPI().getRenderVRPlayer().getController(1).position();
 
 			//开始矩阵操作
 			matrices.push();
@@ -83,18 +80,12 @@ public abstract class ItemInHandRendererVRMixin {
 			//清除旋转矩阵
 			gettingoverit$clearRotate(matrices);
 			//让他的坐标系从玩家变成世界
-			float yaw1 = player.getYaw(tickDelta);
-			float pitch1 = player.getPitch(tickDelta);
-			float roll1 = VRDataHandler.getHMDRoll(player);
-//					dh.vr.getHmdVector()?
-			//是这里的问题！！！
-
-
-			// 计算插值yaw、pitch、roll
-			float interpolatedRoll = lerp(roll1old, roll1, tickDelta);
+			float yaw1 = VRPlugin.getVRAPI().getRenderVRPlayer().getHMD().getYaw();
+			float pitch1 = -VRPlugin.getVRAPI().getRenderVRPlayer().getHMD().getPitch();
+			float roll1 = VRPlugin.getVRAPI().getRenderVRPlayer().getHMD().getRoll();
 
 			// 计算逆旋转四元数
-			Quaternionf inverseRotation = gettingoverit$getInverseQuaternionFromPitchYaw(pitch1, yaw1, roll1);
+			Quaternionf inverseRotation = gettingoverit$getInverseQuaternionFromPitchYaw(yaw1, pitch1, roll1);
 			// 应用逆旋转，使物体相对于世界坐标系保持静止
 			matrices.multiply(inverseRotation);
 
@@ -103,9 +94,9 @@ public abstract class ItemInHandRendererVRMixin {
 			//旋转绑定另外一只手
 			Vec3d direction;
 			if (mainHand) {
-				direction = interpolatedLeftHandPos.subtract(interpolatedRightHandPos).normalize();
+				direction = leftHandPos.subtract(rightHandPos).normalize();
 			} else {
-				direction = interpolatedRightHandPos.subtract(interpolatedLeftHandPos).normalize();
+				direction = rightHandPos.subtract(leftHandPos).normalize();
 			}
 
 			Vec3d Y_axis = new Vec3d(0, -1, 0);
@@ -119,7 +110,7 @@ public abstract class ItemInHandRendererVRMixin {
 			// 应用变换矩阵
 			matrices.multiply(rotationQuaternion);
 
-			matrices.scale(1, 1.25f, 1);
+			matrices.scale(1, 1.5f, 1);//原始长度
 
 			// 渲染
 			if (mainHand) {
@@ -133,29 +124,53 @@ public abstract class ItemInHandRendererVRMixin {
 			ci.cancel();//取消正常的渲染
 		}
 	}
-	@Inject(at = @At("TAIL"), method = "updateHeldItems")
-	private void init(CallbackInfo info) {
-		roll1old = roll1;
+
+	@Unique
+	private float gettingoverit$getEquipProgress(Hand hand, float partialTicks) {
+		return hand == Hand.MAIN_HAND ? 1.0F - (this.prevEquipProgressMainHand + (this.equipProgressMainHand - this.prevEquipProgressMainHand) * partialTicks) : 1.0F - (this.prevEquipProgressOffHand + (this.equipProgressOffHand - this.prevEquipProgressOffHand) * partialTicks);
 	}
+
 	@Unique
 	private static float gettingoverit$smoothStep(float a, float b, float t) {
 		t = t * t * (3 - 2 * t);
 		return a + (b - a) * t;
 	}
-	@Unique
-	private Quaternionf gettingoverit$getInverseQuaternionFromPitchYaw(float pitch, float yaw, float roll) {
-		// 创建四元数
-		Quaternionf quaternion = new Quaternionf();
 
+	@Unique
+	private static Vector3f gettingoverit$extractEulerAngles(Matrix4f rotationMatrix) {
+		Vector3f eulerAngles = new Vector3f();
+
+		// Assuming the matrix is a pure rotation matrix
+		float sy = (float) Math.sqrt(rotationMatrix.m00() * rotationMatrix.m00() + rotationMatrix.m01() * rotationMatrix.m01());
+
+		boolean singular = sy < 1e-6; // If
+
+		if (!singular) {
+			eulerAngles.x = (float) Math.atan2(rotationMatrix.m21(), rotationMatrix.m22());
+			eulerAngles.y = (float) Math.atan2(-rotationMatrix.m20(), sy);
+			eulerAngles.z = (float) Math.atan2(rotationMatrix.m10(), rotationMatrix.m00());
+		} else {
+			eulerAngles.x = (float) Math.atan2(-rotationMatrix.m12(), rotationMatrix.m11());
+			eulerAngles.y = (float) Math.atan2(-rotationMatrix.m20(), sy);
+			eulerAngles.z = 0;
+		}
+
+		return eulerAngles;
+	}
+	@Unique
+	private Quaternionf gettingoverit$getInverseQuaternionFromPitchYaw(float yaw,float pitch, float roll) {
+		// 创建四元数
+
+		Quaternionf quaternion = new Quaternionf();
 		// 计算 pitch 和 yaw 和 roll的旋转四元数
 		Quaternionf quaternionYaw = new Quaternionf().rotateY((float) Math.toRadians(-yaw));
 		Quaternionf quaternionPitch = new Quaternionf().rotateX((float) Math.toRadians(-pitch));
 		Quaternionf quaternionRoll = new Quaternionf().rotateZ((float) Math.toRadians(-roll));
-
 		// 合并旋转
 		quaternion.set(quaternionYaw);
 		quaternion.mul(quaternionPitch);
 		quaternion.mul(quaternionRoll);
+
 
 		// 计算逆四元数
 		quaternion.conjugate();
