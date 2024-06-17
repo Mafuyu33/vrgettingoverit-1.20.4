@@ -129,34 +129,6 @@ public abstract class ItemInHandRendererVRMixin {
 	private float gettingoverit$getEquipProgress(Hand hand, float partialTicks) {
 		return hand == Hand.MAIN_HAND ? 1.0F - (this.prevEquipProgressMainHand + (this.equipProgressMainHand - this.prevEquipProgressMainHand) * partialTicks) : 1.0F - (this.prevEquipProgressOffHand + (this.equipProgressOffHand - this.prevEquipProgressOffHand) * partialTicks);
 	}
-
-	@Unique
-	private static float gettingoverit$smoothStep(float a, float b, float t) {
-		t = t * t * (3 - 2 * t);
-		return a + (b - a) * t;
-	}
-
-	@Unique
-	private static Vector3f gettingoverit$extractEulerAngles(Matrix4f rotationMatrix) {
-		Vector3f eulerAngles = new Vector3f();
-
-		// Assuming the matrix is a pure rotation matrix
-		float sy = (float) Math.sqrt(rotationMatrix.m00() * rotationMatrix.m00() + rotationMatrix.m01() * rotationMatrix.m01());
-
-		boolean singular = sy < 1e-6; // If
-
-		if (!singular) {
-			eulerAngles.x = (float) Math.atan2(rotationMatrix.m21(), rotationMatrix.m22());
-			eulerAngles.y = (float) Math.atan2(-rotationMatrix.m20(), sy);
-			eulerAngles.z = (float) Math.atan2(rotationMatrix.m10(), rotationMatrix.m00());
-		} else {
-			eulerAngles.x = (float) Math.atan2(-rotationMatrix.m12(), rotationMatrix.m11());
-			eulerAngles.y = (float) Math.atan2(-rotationMatrix.m20(), sy);
-			eulerAngles.z = 0;
-		}
-
-		return eulerAngles;
-	}
 	@Unique
 	private Quaternionf gettingoverit$getInverseQuaternionFromPitchYaw(float yaw,float pitch, float roll) {
 		// 创建四元数
