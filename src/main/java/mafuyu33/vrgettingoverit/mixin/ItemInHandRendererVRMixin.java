@@ -110,7 +110,7 @@ public abstract class ItemInHandRendererVRMixin {
 			// 应用变换矩阵
 			matrices.multiply(rotationQuaternion);
 
-			matrices.scale(1, 1.5f, 1);//原始长度
+			matrices.scale(1, 1.7f, 1);//原始长度
 
 			// 渲染
 			if (mainHand) {
