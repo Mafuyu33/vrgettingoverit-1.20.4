@@ -62,17 +62,15 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     @Inject(at = @At("HEAD"), method = "tick")
     private void init(CallbackInfo info) {
         if(this.isHolding(Moditems.VR_GETTING_OVER_IT)){//手持vr锤子的时候
-            //传递手柄参数给
-
-
-            //强制双手持有
+            //强制双手持有？
 
 
             World world=this.getWorld();
             if (VRPlugin.canRetrieveData((PlayerEntity) (Object)this)) {//vr
 
-                //禁止玩家使用方向键移动
+                //禁止玩家使用方向键移动？
 
+                ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
                 //获取vr玩家左右手的位置坐标
                 Vec3d mainPos = VRDataHandler.getMainhandControllerPosition((PlayerEntity) (Object)this);
                 Vec3d offPos = VRDataHandler.getOffhandControllerPosition((PlayerEntity) (Object)this);
@@ -95,6 +93,8 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                 if(VrGettingOverIt$isInsideBlock(world, predictPos) && !VrGettingOverIt$isInsideBlock(world, lastPos)){
                     //如果预测坐标在方块内，上次坐标不在方块内，表明是第一次碰到方块。更新坐标，不更新玩家位置。
                     currentPos=predictPos;
+                    dh.vr.triggerHapticPulse(0, 100);
+                    dh.vr.triggerHapticPulse(1, 100);
                     this.sendMessage(Text.literal("第一次碰到方块"), true);
                 }
                 if (VrGettingOverIt$isInsideBlock(world, predictPos) && VrGettingOverIt$isInsideBlock(world, lastPos)) {
@@ -114,11 +114,13 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
                     //将predictPos（预测位置）和currentPos（实际位置）进行比较，计算它们之间的位移向量
                     Vec3d displacement = predictPos.subtract(currentPos);
+
+                    // 计算新的位置
+                    Vec3d newPos = playerPos.subtract(displacement);
+                    if (world.isClient) {
                     //将这个位移向量同步在玩家身上
-                    this.setPos(playerPos.x-displacement.x,playerPos.y-displacement.y,playerPos.z-displacement.z);
-                    if(world.isClient) {
-                        ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
-                        dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity)(Object) this, false, false);
+                    VrGettingOverIt$adjustPlayerPosition(dh,(ClientPlayerEntity) (Object)this,newPos.x,newPos.y,newPos.z);
+//                    dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity) (Object) this, false, false);
                     }
                 }
                 if(!VrGettingOverIt$isInsideBlock(world, predictPos) && VrGettingOverIt$isInsideBlock(world, lastPos)){
@@ -153,6 +155,65 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             lastPos=null;
             predictPos=null;
             hasSpawn=false;
+        }
+    }
+
+    @Unique
+    private void VrGettingOverIt$adjustPlayerPosition(ClientDataHolderVR dh, ClientPlayerEntity player, double x, double y, double z) {
+        double d4 = player.getX();
+        double d6 = player.getY();
+        double d8 = player.getZ();
+        boolean flag6 = false;
+
+        for (int l = 0; l < 8; ++l) {
+            double d13 = x;
+            double d2 = y;
+            double d3 = z;
+
+            switch (l) {
+                case 1:
+                default:
+                    break;
+                case 2:
+                    d2 = d6;
+                    break;
+                case 3:
+                    d3 = d8;
+                    break;
+                case 4:
+                    d13 = d4;
+                    break;
+                case 5:
+                    d13 = d4;
+                    d3 = d8;
+                    break;
+                case 6:
+                    d13 = d4;
+                    d2 = d6;
+                    break;
+                case 7:
+                    d2 = d6;
+                    d3 = d8;
+            }
+
+            player.setPosition(d13, d2, d3);
+            Box aabb1 = player.getBoundingBox();
+            flag6 = this.getWorld().isSpaceEmpty(player, aabb1);
+
+            if (flag6) {
+//                dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity) (Object) this, false, false);
+                if (l > 1) {
+                    dh.vr.triggerHapticPulse(0, 100);
+                    dh.vr.triggerHapticPulse(1, 100);
+                }
+                break;
+            }
+        }
+
+        if (!flag6) {
+            player.setPosition(d4, d6, d8);
+            dh.vr.triggerHapticPulse(0, 100);
+            dh.vr.triggerHapticPulse(1, 100);
         }
     }
 
