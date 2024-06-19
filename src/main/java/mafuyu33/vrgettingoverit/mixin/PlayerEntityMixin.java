@@ -10,6 +10,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleTypes;
@@ -36,7 +37,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     @Shadow public abstract float getMovementSpeed();
 
     @Unique
-    public Vec3History[] controllerHistory = new Vec3History[]{new Vec3History(), new Vec3History()};
+    public Vec3History positionHistory  = new Vec3History();
     @Unique
     final double extendDistance=2.0;
     @Unique
@@ -72,7 +73,6 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
             World world=this.getWorld();
             if (VRPlugin.canRetrieveData((PlayerEntity) (Object)this)) {//vr
-
                 //禁止玩家使用方向键移动？
 
                 ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
@@ -112,10 +112,10 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                 }
                 if(!VrGettingOverIt$isInsideBlock(world, predictPos) && VrGettingOverIt$isInsideBlock(world, lastPos)){
                     //如果预测坐标不在方块内，上次坐标在方块内(但是还要加一个判断！)
-
                     //并且，锤子距离方块的哪一个面近，就不让锤头从对面的面出去。
                     //实现：加一个beforeTouchPos，可以和lastPos计算出向量，进而如果predictPos在beforeTouchPos指向lastPos的向量底下，也不更新。
-                    if(gettingoverit$isAbovePlane(lastPos,beforeTouchPos,predictPos)){//此时虽然预测点在方块外，但是不符合上面的要求，继续移动玩家位置，不更新坐标。
+                    if(gettingoverit$isAbovePlane(lastPos,beforeTouchPos,predictPos) && lastPos.distanceTo(predictPos)<extendDistance){
+                        //此时虽然预测点在方块外，但是不符合上面的要求，继续移动玩家位置，不更新坐标。
                         currentPos=lastPos;
                         gettingoverit$hammerMovePlayer(world, dh);
                         this.sendMessage(Text.literal("接着卡在方块中"), true);
@@ -123,6 +123,9 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                         this.fallDistance = 0.0F;
                         currentPos = predictPos;
                         this.setNoGravity(false);
+
+                        gettingoverit$addVelocity();
+
                         this.sendMessage(Text.literal("脱离卡住状态了"), true);
                     }
                 }
@@ -141,6 +144,9 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
                 //存储上一次的位置
                 lastPos = currentPos;
+                // 在更新周期中记录玩家的位置
+                positionHistory.add(this.getPos());
+
             }else {//非vr
                 if(!world.isClient) {
                     this.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);
@@ -150,32 +156,52 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                 }
             }
         }else if(currentPos!=null&&lastPos!=null&&predictPos!=null){//没有手持vr锤子,且之前的值不为空的时候,重置为初始状态
-            this.setNoGravity(false);
+            if(this.hasNoGravity()){
+                this.setNoGravity(false);
+            }
             currentPos=null;
             lastPos=null;
             predictPos=null;
             hasSpawn=false;
         }
     }
+
+    @Unique
+    private void gettingoverit$addVelocity() {
+        // 获取0.3秒内的净移动量和平均速度
+        Vec3d netMovement = positionHistory.netMovement(0.3D);
+        double averageSpeed = positionHistory.averageSpeed(0.3F);
+        float amp = 0.03f;
+        if(this.hasStatusEffect(StatusEffects.JUMP_BOOST)){
+           amp = amp * (this.getStatusEffect(StatusEffects.JUMP_BOOST).getAmplifier()*1f+1f);
+        }
+        // 计算新的速度并施加
+        Vec3d newVelocity = netMovement.normalize().multiply(averageSpeed*amp);
+        this.setVelocity(newVelocity);
+    }
+
     @Unique
     private boolean gettingoverit$isAbovePlane(Vec3d lastPos, Vec3d beforeTouchPos, Vec3d predictPos) {
         // 第一步：计算 beforeTouchPos 指向 lastPos 的单位方向向量
-        Vec3d direction = lastPos.subtract(beforeTouchPos).normalize();
+        if(lastPos!=null&& beforeTouchPos!=null) {
+            Vec3d direction = lastPos.subtract(beforeTouchPos).normalize();
 
-        // 使用 direction 作为平面的法向量
-        Vec3d normal = direction;
+            // 使用 direction 作为平面的法向量
 
-        // 第三步：计算平面方程 ax + by + cz + d = 0 的常数项 d
-        double d = -(normal.x * lastPos.x + normal.y * lastPos.y + normal.z * lastPos.z);
+            // 第三步：计算平面方程 ax + by + cz + d = 0 的常数项 d
+            double d = -(direction.x * lastPos.x + direction.y * lastPos.y + direction.z * lastPos.z);
 
-        // 第四步：判断 predictPos 在平面的哪一侧
-        double result = normal.x * predictPos.x + normal.y * predictPos.y + normal.z * predictPos.z + d;
+            // 第四步：判断 predictPos 在平面的哪一侧
+            double result = direction.x * predictPos.x + direction.y * predictPos.y + direction.z * predictPos.z + d;
 
 //        // 渲染粒子来表示平面
 //        gettingoverit$renderPlane(lastPos, normal, this.getWorld());
 
-        // 如果结果为正，则 predictPos 在平面上方
-        return result > 0;
+            // 如果结果为正，则 predictPos 在平面上方
+            return result > 0;
+        }else {
+            return false;
+        }
     }
     @Unique
     private void gettingoverit$renderPlane(Vec3d origin, Vec3d normal, World world) {
@@ -260,18 +286,18 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
             if (flag6) {
 //                dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity) (Object) this, false, false);
-                if (l > 1) {
-                    dh.vr.triggerHapticPulse(0, 100);
-                    dh.vr.triggerHapticPulse(1, 100);
-                }
+//                if (l > 1) {
+//                    dh.vr.triggerHapticPulse(0, 100);
+//                    dh.vr.triggerHapticPulse(1, 100);
+//                }
                 break;
             }
         }
 
         if (!flag6) {
             player.setPosition(d4, d6, d8);
-            dh.vr.triggerHapticPulse(0, 100);
-            dh.vr.triggerHapticPulse(1, 100);
+//            dh.vr.triggerHapticPulse(0, 100);
+//            dh.vr.triggerHapticPulse(1, 100);
         }
     }
 
