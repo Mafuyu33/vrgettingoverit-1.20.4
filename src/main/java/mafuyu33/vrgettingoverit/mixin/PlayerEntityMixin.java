@@ -136,10 +136,10 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                     this.sendMessage(Text.literal("都不在方块内，正常更新"), true);
                 }
 
-                //渲染锤头粒子
-                if(this.getWorld().isClient){
-                    world.addParticle(ParticleTypes.BUBBLE, currentPos.x, currentPos.y, currentPos.z, 0, 0, 0);
-                }
+//                //渲染锤头粒子
+//                if(this.getWorld().isClient){
+//                    world.addParticle(ParticleTypes.BUBBLE, currentPos.x, currentPos.y, currentPos.z, 0, 0, 0);
+//                }
 
                 //存储上一次的位置
                 lastPos = currentPos;
