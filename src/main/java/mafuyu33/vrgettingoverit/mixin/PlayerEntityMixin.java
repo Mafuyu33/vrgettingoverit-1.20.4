@@ -57,7 +57,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         super(entityType, world);
     }
 
-
+//实时检测锤柄移动速度？还是手柄移动速度？然后超过一个阈值之后给一个速度并禁用锤子检测一段时间，实现跳跃效果。
 
     @Inject(at = @At("HEAD"), method = "tick")
     private void init(CallbackInfo info) {
