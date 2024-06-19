@@ -47,6 +47,10 @@ import static org.joml.Math.lerp;
 @Mixin(value = HeldItemRenderer.class, priority = 998)
 public abstract class ItemInHandRendererVRMixin {
 	@Unique
+	private static Vec3d lastLeftHandPos;
+	@Unique
+	private static Vec3d lastRightHandPos;
+	@Unique
 	private static Vec3d lastPos;
 	@Unique
 	private static Vec3d predictPos;
@@ -88,6 +92,25 @@ public abstract class ItemInHandRendererVRMixin {
 			// 获取两个手柄
 			Vec3d rightHandPos = VRPlugin.getVRAPI().getRenderVRPlayer().getController(0).position();
 			Vec3d leftHandPos = VRPlugin.getVRAPI().getRenderVRPlayer().getController(1).position();
+			Vec3d interpolatedRightHandPos;
+			Vec3d interpolatedLeftHandPos;
+			// 计算右手手柄的插值位置
+			if(lastRightHandPos!=null&&lastLeftHandPos!=null) {
+				interpolatedRightHandPos = new Vec3d(
+						lastRightHandPos.x + tickDelta * (rightHandPos.x - lastRightHandPos.x),
+						lastRightHandPos.y + tickDelta * (rightHandPos.y - lastRightHandPos.y),
+						lastRightHandPos.z + tickDelta * (rightHandPos.z - lastRightHandPos.z)
+				);
+				// 计算左手手柄的插值位置
+				interpolatedLeftHandPos = new Vec3d(
+						lastLeftHandPos.x + tickDelta * (leftHandPos.x - lastLeftHandPos.x),
+						lastLeftHandPos.y + tickDelta * (leftHandPos.y - lastLeftHandPos.y),
+						lastLeftHandPos.z + tickDelta * (leftHandPos.z - lastLeftHandPos.z)
+				);
+			}else {
+				interpolatedRightHandPos=rightHandPos;
+				interpolatedLeftHandPos=leftHandPos;
+			}
 
 			//开始矩阵操作
 			matrices.push();
@@ -106,7 +129,7 @@ public abstract class ItemInHandRendererVRMixin {
 			matrices.multiply(inverseRotation);
 
 			//旋转绑定锤头判定点
-			Vec3d direction = gettingoverit$getDirection(mainHand,player.getWorld(),rightHandPos,leftHandPos,2.0f);
+			Vec3d direction = gettingoverit$getDirection(mainHand,player.getWorld(),interpolatedRightHandPos,interpolatedLeftHandPos,2.0f);
 
 			Vec3d Y_axis = new Vec3d(0, -1, 0);
 			Vec3d rotationAxis = Y_axis.crossProduct(direction);
@@ -132,6 +155,8 @@ public abstract class ItemInHandRendererVRMixin {
 			matrices.pop();
 
 			lastPos = currentPos;//储存计算的位置
+			lastRightHandPos=rightHandPos;
+			lastLeftHandPos=leftHandPos;
 
 			ci.cancel();//取消正常的渲染
 		}
