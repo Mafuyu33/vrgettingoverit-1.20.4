@@ -17,6 +17,7 @@ import net.minecraft.particle.ParticleTypes;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathConstants;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.World;
@@ -114,7 +115,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                     //如果预测坐标不在方块内，上次坐标在方块内(但是还要加一个判断！)
                     //并且，锤子距离方块的哪一个面近，就不让锤头从对面的面出去。
                     //实现：加一个beforeTouchPos，可以和lastPos计算出向量，进而如果predictPos在beforeTouchPos指向lastPos的向量底下，也不更新。
-                    if(gettingoverit$isAbovePlane(lastPos,beforeTouchPos,predictPos) && lastPos.distanceTo(predictPos)<extendDistance){
+                    if(gettingoverit$isAbovePlane(lastPos,beforeTouchPos,predictPos) && lastPos.distanceTo(predictPos)< extendDistance* MathConstants.PI/3){
                         //此时虽然预测点在方块外，但是不符合上面的要求，继续移动玩家位置，不更新坐标。
                         currentPos=lastPos;
                         gettingoverit$hammerMovePlayer(world, dh);
