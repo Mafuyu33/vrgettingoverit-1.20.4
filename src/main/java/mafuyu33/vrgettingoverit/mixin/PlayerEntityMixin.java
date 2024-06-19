@@ -32,10 +32,15 @@ import org.vivecraft.client_vr.ClientDataHolderVR;
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin extends LivingEntity {
     @Shadow public abstract void sendMessage(Text message, boolean overlay);
+
+    @Shadow public abstract float getMovementSpeed();
+
     @Unique
     public Vec3History[] controllerHistory = new Vec3History[]{new Vec3History(), new Vec3History()};
     @Unique
     final double extendDistance=2.0;
+    @Unique
+    private static Vec3d beforeTouchPos;
     @Unique
     private static Vec3d lastPos;
     @Unique
@@ -91,8 +96,9 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
 
                 if(VrGettingOverIt$isInsideBlock(world, predictPos) && !VrGettingOverIt$isInsideBlock(world, lastPos)){
-                    //如果预测坐标在方块内，上次坐标不在方块内，表明是第一次碰到方块。更新坐标，不更新玩家位置。
+                    //如果预测坐标在方块内，上次坐标不在方块内，表明是第一次碰到方块。更新坐标，不更新玩家位置。把玩家速度设置成0
                     currentPos=predictPos;
+                    this.setVelocity(0,0,0);
                     dh.vr.triggerHapticPulse(0, 100);
                     dh.vr.triggerHapticPulse(1, 100);
                     this.sendMessage(Text.literal("第一次碰到方块"), true);
@@ -101,43 +107,35 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                     // 如果预测坐标在方块内，上次坐标也在方块内，表明是卡在方块中了。为了防止移动，不更新坐标，但是更新玩家位置。
                     currentPos=lastPos;
                     this.sendMessage(Text.literal("卡在方块中了"), true);
-                    // 然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线（这个怎么实现？）（用旋转角度检测？）
-
-                    //让玩家浮空
-                    if (this.isOnGround()) {
-                        this.setOnGround(false);
-                    }
-                    this.setNoGravity(true);
-
-                    // 获取当前玩家位置
-                    Vec3d playerPos = this.getPos();
-
-                    //将predictPos（预测位置）和currentPos（实际位置）进行比较，计算它们之间的位移向量
-                    Vec3d displacement = predictPos.subtract(currentPos);
-
-                    // 计算新的位置
-                    Vec3d newPos = playerPos.subtract(displacement);
-                    if (world.isClient) {
-                    //将这个位移向量同步在玩家身上
-                    VrGettingOverIt$adjustPlayerPosition(dh,(ClientPlayerEntity) (Object)this,newPos.x,newPos.y,newPos.z);
-//                    dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity) (Object) this, false, false);
-                    }
+                    // 然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线
+                    gettingoverit$hammerMovePlayer(world, dh);
                 }
                 if(!VrGettingOverIt$isInsideBlock(world, predictPos) && VrGettingOverIt$isInsideBlock(world, lastPos)){
-                    //如果预测坐标不在方块内，上次坐标在方块内，表明锤子脱离卡住状态了。更新坐标，不更新玩家位置。
-                    this.fallDistance = 0.0F;
-                    currentPos = predictPos;
-                    this.setNoGravity(false);
-                    this.sendMessage(Text.literal("脱离卡住状态了"), true);
+                    //如果预测坐标不在方块内，上次坐标在方块内(但是还要加一个判断！)
+
+                    //并且，锤子距离方块的哪一个面近，就不让锤头从对面的面出去。
+                    //实现：加一个beforeTouchPos，可以和lastPos计算出向量，进而如果predictPos在beforeTouchPos指向lastPos的向量底下，也不更新。
+                    if(gettingoverit$isAbovePlane(lastPos,beforeTouchPos,predictPos)){//此时虽然预测点在方块外，但是不符合上面的要求，继续移动玩家位置，不更新坐标。
+                        currentPos=lastPos;
+                        gettingoverit$hammerMovePlayer(world, dh);
+                        this.sendMessage(Text.literal("接着卡在方块中"), true);
+                    }else {//此时表明锤子脱离卡住状态了。更新坐标，停止更新玩家位置。
+                        this.fallDistance = 0.0F;
+                        currentPos = predictPos;
+                        this.setNoGravity(false);
+                        this.sendMessage(Text.literal("脱离卡住状态了"), true);
+                    }
                 }
                 if(!VrGettingOverIt$isInsideBlock(world, predictPos) && !VrGettingOverIt$isInsideBlock(world, lastPos)){
                     //都不在方块内，正常更新
                     currentPos = predictPos;
+                    beforeTouchPos = lastPos;
                     this.sendMessage(Text.literal("都不在方块内，正常更新"), true);
                 }
 
 //                //渲染锤头粒子
-//                if(this.getWorld().isClient){
+//                if(this.getWorld().isClient&&beforeTouchPos!=null&&lastPos!=null&&currentPos!=null){
+//                    world.addParticle(ParticleTypes.END_ROD, beforeTouchPos.x, beforeTouchPos.y, beforeTouchPos.z, 0, 0, 0);
 //                    world.addParticle(ParticleTypes.BUBBLE, currentPos.x, currentPos.y, currentPos.z, 0, 0, 0);
 //                }
 
@@ -146,7 +144,9 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             }else {//非vr
                 if(!world.isClient) {
                     this.sendMessage(Text.literal("sorry, this item currently only working with VR Mode :("), true);
-
+                    if(this.hasNoGravity()){
+                        this.setNoGravity(false);
+                    }
                 }
             }
         }else if(currentPos!=null&&lastPos!=null&&predictPos!=null){//没有手持vr锤子,且之前的值不为空的时候,重置为初始状态
@@ -155,6 +155,64 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             lastPos=null;
             predictPos=null;
             hasSpawn=false;
+        }
+    }
+    @Unique
+    private boolean gettingoverit$isAbovePlane(Vec3d lastPos, Vec3d beforeTouchPos, Vec3d predictPos) {
+        // 第一步：计算 beforeTouchPos 指向 lastPos 的单位方向向量
+        Vec3d direction = lastPos.subtract(beforeTouchPos).normalize();
+
+        // 使用 direction 作为平面的法向量
+        Vec3d normal = direction;
+
+        // 第三步：计算平面方程 ax + by + cz + d = 0 的常数项 d
+        double d = -(normal.x * lastPos.x + normal.y * lastPos.y + normal.z * lastPos.z);
+
+        // 第四步：判断 predictPos 在平面的哪一侧
+        double result = normal.x * predictPos.x + normal.y * predictPos.y + normal.z * predictPos.z + d;
+
+//        // 渲染粒子来表示平面
+//        gettingoverit$renderPlane(lastPos, normal, this.getWorld());
+
+        // 如果结果为正，则 predictPos 在平面上方
+        return result > 0;
+    }
+    @Unique
+    private void gettingoverit$renderPlane(Vec3d origin, Vec3d normal, World world) {
+        // 选择两个与 normal 正交的向量
+        Vec3d u = new Vec3d(-normal.y, normal.x, 0).normalize();
+        Vec3d v = normal.crossProduct(u).normalize();
+
+        // 渲染粒子
+        int numParticles = 100; // 粒子的数量
+        double planeSize = 2.0; // 平面的尺寸
+        for (int i = 0; i < numParticles; i++) {
+            double x = (Math.random() - 0.5) * planeSize;
+            double y = (Math.random() - 0.5) * planeSize;
+            Vec3d particlePos = origin.add(u.multiply(x)).add(v.multiply(y));
+            world.addParticle(ParticleTypes.BUBBLE, particlePos.x, particlePos.y, particlePos.z, 0, 0, 0);
+        }
+    }
+    @Unique
+    private void gettingoverit$hammerMovePlayer(World world, ClientDataHolderVR dh) {
+        //让玩家浮空
+        if (this.isOnGround()) {
+            this.setOnGround(false);
+        }
+        this.setNoGravity(true);
+
+        // 获取当前玩家位置
+        Vec3d playerPos = this.getPos();
+
+        //将predictPos（预测位置）和currentPos（实际位置）进行比较，计算它们之间的位移向量
+        Vec3d displacement = predictPos.subtract(currentPos);
+
+        // 计算新的位置
+        Vec3d newPos = playerPos.subtract(displacement);
+        if (world.isClient) {
+        //将这个位移向量同步在玩家身上
+        VrGettingOverIt$adjustPlayerPosition(dh,(ClientPlayerEntity) (Object)this,newPos.x,newPos.y,newPos.z);
+//                    dh.vrPlayer.snapRoomOriginToPlayerEntity((ClientPlayerEntity) (Object) this, false, false);
         }
     }
 
