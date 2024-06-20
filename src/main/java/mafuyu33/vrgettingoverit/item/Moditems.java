@@ -14,7 +14,7 @@ import net.minecraft.util.Identifier;
 
 public class Moditems {
     public static final Item VR_GETTING_OVER_IT = registerItem("vr_getting_over_it",
-            new Item((new FabricItemSettings()).fireproof()));
+            new Item((new FabricItemSettings()).fireproof().maxCount(1)));
 //    public static final Item VR_GETTING_OVER_IT = registerItem("vr_getting_over_it",
 //            new SwordItem(ToolMaterials.NETHERITE, 3, -2.4F, (new FabricItemSettings()).fireproof()));
 

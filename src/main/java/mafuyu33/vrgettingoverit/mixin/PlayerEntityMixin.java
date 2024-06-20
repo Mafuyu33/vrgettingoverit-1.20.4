@@ -102,12 +102,12 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                     this.setVelocity(0,0,0);
                     dh.vr.triggerHapticPulse(0, 100);
                     dh.vr.triggerHapticPulse(1, 100);
-                    this.sendMessage(Text.literal("第一次碰到方块"), true);
+//                    this.sendMessage(Text.literal("第一次碰到方块"), true);
                 }
                 if (VrGettingOverIt$isInsideBlock(world, predictPos) && VrGettingOverIt$isInsideBlock(world, lastPos)) {
                     // 如果预测坐标在方块内，上次坐标也在方块内，表明是卡在方块中了。为了防止移动，不更新坐标，但是更新玩家位置。
                     currentPos=lastPos;
-                    this.sendMessage(Text.literal("卡在方块中了"), true);
+//                    this.sendMessage(Text.literal("卡在方块中了"), true);
                     // 然后移动玩家位置，让主手，副手，和现在坐标的位置三点连线是一条直线
                     gettingoverit$hammerMovePlayer(world, dh);
                 }
@@ -119,7 +119,7 @@ public abstract class PlayerEntityMixin extends LivingEntity {
                         //此时虽然预测点在方块外，但是不符合上面的要求，继续移动玩家位置，不更新坐标。
                         currentPos=lastPos;
                         gettingoverit$hammerMovePlayer(world, dh);
-                        this.sendMessage(Text.literal("接着卡在方块中"), true);
+//                        this.sendMessage(Text.literal("接着卡在方块中"), true);
                     }else {//此时表明锤子脱离卡住状态了。更新坐标，停止更新玩家位置。
                         this.fallDistance = 0.0F;
                         currentPos = predictPos;
@@ -127,14 +127,14 @@ public abstract class PlayerEntityMixin extends LivingEntity {
 
                         gettingoverit$addVelocity();
 
-                        this.sendMessage(Text.literal("脱离卡住状态了"), true);
+//                        this.sendMessage(Text.literal("脱离卡住状态了"), true);
                     }
                 }
                 if(!VrGettingOverIt$isInsideBlock(world, predictPos) && !VrGettingOverIt$isInsideBlock(world, lastPos)){
                     //都不在方块内，正常更新
                     currentPos = predictPos;
                     beforeTouchPos = lastPos;
-                    this.sendMessage(Text.literal("都不在方块内，正常更新"), true);
+//                    this.sendMessage(Text.literal("都不在方块内，正常更新"), true);
                 }
 
 //                //渲染锤头粒子

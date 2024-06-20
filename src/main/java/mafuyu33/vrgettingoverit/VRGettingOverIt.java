@@ -68,9 +68,8 @@ public class VRGettingOverIt implements ModInitializer {
 	public void checkAndGiveHammer(ServerPlayerEntity player) {
 		boolean hasHammer = false;
 
-		// 检查玩家背包中是否有锤子
-		for (int i = 0; i < player.getInventory().main.size(); i++) {
-			ItemStack itemStack = player.getInventory().main.get(i);
+		// 检查玩家背包中是否有钓鱼竿
+		for (ItemStack itemStack : player.getInventory().main) {
 			if (itemStack.getItem() == Moditems.VR_GETTING_OVER_IT) {
 				hasHammer = true;
 				break;
