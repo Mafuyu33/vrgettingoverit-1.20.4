@@ -1,6 +1,5 @@
 package mafuyu33.vrgettingoverit.mixin;
 
-import com.mojang.authlib.GameProfile;
 import mafuyu33.vrgettingoverit.VRDataHandler;
 import mafuyu33.vrgettingoverit.VRPlugin;
 import mafuyu33.vrgettingoverit.item.Moditems;
@@ -8,12 +7,18 @@ import mafuyu33.vrgettingoverit.util.Vec3History;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.enchantment.EnchantmentHelper;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.AttributeModifierCreator;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -29,6 +34,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.vivecraft.client_vr.ClientDataHolderVR;
+
+import java.util.List;
 
 
 @Mixin(PlayerEntity.class)
@@ -166,6 +173,53 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             hasSpawn=false;
         }
     }
+    @Unique
+    private void gettingoverit$handleEntityCollisions(World world, Vec3d currentPos, Vec3d lastPos, double someThreshold, boolean leftHanded, ClientDataHolderVR dh) {
+        // 确保 currentPos 和 lastPos 不为空
+        if (currentPos == null || lastPos == null) {
+            return;
+        }
+        // 初始化伤害量和击退力度
+        float someDamageAmount = 1.0F; // 默认伤害量
+        double knockbackStrength = 0.4; // 默认击退力度
+
+//        // 根据是否为副手决定从主手或副手读取属性
+//        if (leftHanded) {
+//            ItemStack mainHandStack = this.getMainHandStack();
+//            if (mainHandStack != null) {
+//                someDamageAmount = (float) mainHandStack.getAttributeModifiers(EquipmentSlot.MAINHAND).get(EntityAttributes.GENERIC_ATTACK_DAMAGE).stream()
+//                        .mapToDouble(AttributeModifier::getAmount).sum();
+//                knockbackStrength = EnchantmentHelper.getKnockback((PlayerEntity) (Object) this); // 读取主手击退属性
+//            }
+//        } else {
+//            ItemStack offHandStack = this.getOffHandStack();
+//            if (offHandStack != null) {
+//                someDamageAmount = (float) offHandStack.getAttributeModifiers(EquipmentSlot.OFFHAND).get(EntityAttributes.GENERIC_ATTACK_DAMAGE).stream()
+//                        .mapToDouble(AttributeModifier::getAmount).sum();
+//                knockbackStrength = EnchantmentHelper.getKnockback((PlayerEntity) (Object) this); // 读取副手击退属性
+//            }
+//        }
+
+        // 获取附近的生物实体
+        List<Entity> entities = world.getOtherEntities(this, new Box(currentPos.add(-2, -2, -2), currentPos.add(2, 2, 2)), EntityPredicates.EXCEPT_SPECTATOR);
+
+        // 对每个实体进行判定
+        for (Entity entity : entities) {
+            if (entity instanceof LivingEntity livingEntity) {
+                if (entity.getBoundingBox().intersects(currentPos.getX(), currentPos.getY(), currentPos.getZ(), currentPos.getX(), currentPos.getY(), currentPos.getZ())) {
+                    double distance = currentPos.distanceTo(lastPos);
+                    if (distance > someThreshold) { // someThreshold 是你设定的距离阈值
+                        // 对生物造成伤害
+                        livingEntity.damage(getDamageSources().playerAttack((PlayerEntity) (Object) this), someDamageAmount);
+
+                        // 击退效果
+                        Vec3d knockbackDirection = livingEntity.getPos().subtract(this.getPos()).normalize();
+                        livingEntity.addVelocity(knockbackDirection.x * knockbackStrength, knockbackDirection.y * knockbackStrength, knockbackDirection.z * knockbackStrength);
+                    }
+                }
+            }
+        }
+    }
 
     @Unique
     private void gettingoverit$addVelocity() {
@@ -173,8 +227,8 @@ public abstract class PlayerEntityMixin extends LivingEntity {
         Vec3d netMovement = positionHistory.netMovement(0.3D);
         double averageSpeed = positionHistory.averageSpeed(0.3F);
         float amp = 0.03f;
-        if(this.hasStatusEffect(StatusEffects.JUMP_BOOST)){
-           amp = amp * (this.getStatusEffect(StatusEffects.JUMP_BOOST).getAmplifier()*1f+1f);
+        if(this.hasStatusEffect(StatusEffects.STRENGTH)){
+           amp = amp * (this.getStatusEffect(StatusEffects.STRENGTH).getAmplifier()*1f+1f);
         }
         // 计算新的速度并施加
         Vec3d newVelocity = netMovement.normalize().multiply(averageSpeed*amp);

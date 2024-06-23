@@ -3,7 +3,8 @@
   "package": "mafuyu33.vrgettingoverit.mixin",
   "compatibilityLevel": "JAVA_17",
   "mixins": [
-    "PlayerEntityMixin"
+    "PlayerEntityMixin",
+    "SwingTrackerMixin"
   ],
   "injectors": {
     "defaultRequire": 1
