@@ -62,10 +62,27 @@ public abstract class ItemInHandRendererVRMixin {
 	@Shadow
 	protected abstract void renderArmHoldingItem(MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, float equipProgress, float swingProgress, Arm arm);
 
+	@Shadow private ItemStack mainHand;
+
 	@Inject(at = @At("HEAD"), method = "renderFirstPersonItem", cancellable = true)
 	private void init(AbstractClientPlayerEntity player, float tickDelta, float pitch, Hand hand, float swingProgress, ItemStack item, float equipProgress, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, CallbackInfo ci) {
+		boolean mainHand = hand == Hand.MAIN_HAND;
+		ItemStack anotherHandItemStack = mainHand?player.getOffHandStack():player.getMainHandStack();
+		if(anotherHandItemStack.isOf(Moditems.VR_GETTING_OVER_IT) && player != null && VRPlugin.canRetrieveData(player)){//副手只渲染手臂
+			ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
+			Arm humanoidarm = mainHand ? player.getMainArm() : player.getMainArm().getOpposite();
+			equipProgressMainHand = this.gettingoverit$getEquipProgress(hand, tickDelta);
+			boolean renderArm = dh.currentPass != RenderPass.THIRD || dh.vrSettings.mixedRealityRenderHands;
+
+			if (dh.currentPass == RenderPass.CAMERA) {
+				renderArm = false;
+			}
+			if (renderArm && !player.isInvisible()) {
+				this.renderArmHoldingItem(matrices, vertexConsumers, light, equipProgress, swingProgress, humanoidarm);//渲染手臂
+			}
+			ci.cancel();
+		}
 		if (item.isOf(Moditems.VR_GETTING_OVER_IT) && player != null && VRPlugin.canRetrieveData(player)) {//如果是VR锤子的话
-			boolean mainHand = hand == Hand.MAIN_HAND;
 			ClientDataHolderVR dh = ClientDataHolderVR.getInstance();
 			Arm humanoidarm = mainHand ? player.getMainArm() : player.getMainArm().getOpposite();
 			equipProgressMainHand = this.gettingoverit$getEquipProgress(hand, tickDelta);

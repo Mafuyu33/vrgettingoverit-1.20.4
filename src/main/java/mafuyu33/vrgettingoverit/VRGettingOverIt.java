@@ -2,11 +2,13 @@ package mafuyu33.vrgettingoverit;
 
 import dev.architectury.event.EventResult;
 import dev.architectury.event.events.common.PlayerEvent;
+import mafuyu33.vrgettingoverit.event.onAttack;
 import mafuyu33.vrgettingoverit.item.Moditems;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.client.rendering.v1.EntityRendererRegistry;
 import net.fabricmc.fabric.api.entity.event.v1.ServerLivingEntityEvents;
 import net.fabricmc.fabric.api.entity.event.v1.ServerPlayerEvents;
+import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.UseItemCallback;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.minecraft.client.render.entity.FlyingItemEntityRenderer;
@@ -33,6 +35,8 @@ public class VRGettingOverIt implements ModInitializer {
 //		ModEntities.init();
 //		EntityRendererRegistry.register(ModEntities.VR_GETTING_OVER_IT_ENTITY, VrGettingOverItRenderer::new);
 		LOGGER.info("Getting over it!");
+
+		AttackEntityCallback.EVENT.register(new onAttack());
 
 		// 注册玩家复活事件
 		ServerPlayerEvents.COPY_FROM.register((oldPlayer, newPlayer, alive) -> {

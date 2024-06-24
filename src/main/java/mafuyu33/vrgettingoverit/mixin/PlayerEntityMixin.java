@@ -1,5 +1,6 @@
 package mafuyu33.vrgettingoverit.mixin;
 
+import com.google.common.collect.Multimap;
 import mafuyu33.vrgettingoverit.VRDataHandler;
 import mafuyu33.vrgettingoverit.VRPlugin;
 import mafuyu33.vrgettingoverit.item.Moditems;
@@ -13,6 +14,8 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.AttributeModifierCreator;
+import net.minecraft.entity.attribute.EntityAttribute;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.player.PlayerEntity;
@@ -20,6 +23,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.predicate.entity.EntityPredicates;
 import net.minecraft.text.Text;
+import net.minecraft.util.Hand;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathConstants;
@@ -35,6 +39,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.vivecraft.client_vr.ClientDataHolderVR;
 
+import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -76,8 +82,21 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     @Inject(at = @At("HEAD"), method = "tick")
     private void init(CallbackInfo info) {
         if(this.isHolding(Moditems.VR_GETTING_OVER_IT)){//手持vr锤子的时候
-            //强制双手持有？
+            //继承副手的攻击力
+            ItemStack mainHandItemStack = this.getStackInHand(Hand.MAIN_HAND);
+            ItemStack offHandItemStack = this.getStackInHand(Hand.OFF_HAND);
 
+            // 检查主手是否是锤子
+            if (mainHandItemStack.getItem() == Moditems.VR_GETTING_OVER_IT) {
+                // 检查副手是否持有其他物品
+                if (!offHandItemStack.isEmpty()) {
+
+                    // 获取副手物品的攻击力
+
+                    // 让玩家获得副手武器的攻击力（根据具体需求，这里可以进行进一步操作）
+
+                }
+            }
 
             World world=this.getWorld();
             if (VRPlugin.canRetrieveData((PlayerEntity) (Object)this)) {//vr
@@ -173,62 +192,15 @@ public abstract class PlayerEntityMixin extends LivingEntity {
             hasSpawn=false;
         }
     }
-    @Unique
-    private void gettingoverit$handleEntityCollisions(World world, Vec3d currentPos, Vec3d lastPos, double someThreshold, boolean leftHanded, ClientDataHolderVR dh) {
-        // 确保 currentPos 和 lastPos 不为空
-        if (currentPos == null || lastPos == null) {
-            return;
-        }
-        // 初始化伤害量和击退力度
-        float someDamageAmount = 1.0F; // 默认伤害量
-        double knockbackStrength = 0.4; // 默认击退力度
-
-//        // 根据是否为副手决定从主手或副手读取属性
-//        if (leftHanded) {
-//            ItemStack mainHandStack = this.getMainHandStack();
-//            if (mainHandStack != null) {
-//                someDamageAmount = (float) mainHandStack.getAttributeModifiers(EquipmentSlot.MAINHAND).get(EntityAttributes.GENERIC_ATTACK_DAMAGE).stream()
-//                        .mapToDouble(AttributeModifier::getAmount).sum();
-//                knockbackStrength = EnchantmentHelper.getKnockback((PlayerEntity) (Object) this); // 读取主手击退属性
-//            }
-//        } else {
-//            ItemStack offHandStack = this.getOffHandStack();
-//            if (offHandStack != null) {
-//                someDamageAmount = (float) offHandStack.getAttributeModifiers(EquipmentSlot.OFFHAND).get(EntityAttributes.GENERIC_ATTACK_DAMAGE).stream()
-//                        .mapToDouble(AttributeModifier::getAmount).sum();
-//                knockbackStrength = EnchantmentHelper.getKnockback((PlayerEntity) (Object) this); // 读取副手击退属性
-//            }
-//        }
-
-        // 获取附近的生物实体
-        List<Entity> entities = world.getOtherEntities(this, new Box(currentPos.add(-2, -2, -2), currentPos.add(2, 2, 2)), EntityPredicates.EXCEPT_SPECTATOR);
-
-        // 对每个实体进行判定
-        for (Entity entity : entities) {
-            if (entity instanceof LivingEntity livingEntity) {
-                if (entity.getBoundingBox().intersects(currentPos.getX(), currentPos.getY(), currentPos.getZ(), currentPos.getX(), currentPos.getY(), currentPos.getZ())) {
-                    double distance = currentPos.distanceTo(lastPos);
-                    if (distance > someThreshold) { // someThreshold 是你设定的距离阈值
-                        // 对生物造成伤害
-                        livingEntity.damage(getDamageSources().playerAttack((PlayerEntity) (Object) this), someDamageAmount);
-
-                        // 击退效果
-                        Vec3d knockbackDirection = livingEntity.getPos().subtract(this.getPos()).normalize();
-                        livingEntity.addVelocity(knockbackDirection.x * knockbackStrength, knockbackDirection.y * knockbackStrength, knockbackDirection.z * knockbackStrength);
-                    }
-                }
-            }
-        }
-    }
 
     @Unique
     private void gettingoverit$addVelocity() {
         // 获取0.3秒内的净移动量和平均速度
         Vec3d netMovement = positionHistory.netMovement(0.3D);
         double averageSpeed = positionHistory.averageSpeed(0.3F);
-        float amp = 0.03f;
+        float amp = 0.06f;
         if(this.hasStatusEffect(StatusEffects.STRENGTH)){
-           amp = amp * (this.getStatusEffect(StatusEffects.STRENGTH).getAmplifier()*1f+1f);
+           amp = amp * (this.getStatusEffect(StatusEffects.STRENGTH).getAmplifier()+1f);
         }
         // 计算新的速度并施加
         Vec3d newVelocity = netMovement.normalize().multiply(averageSpeed*amp);
